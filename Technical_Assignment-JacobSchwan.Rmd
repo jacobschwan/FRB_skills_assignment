@@ -1,0 +1,83 @@
+---
+title: "Technical Skill Assignment"
+author: "Jacob Schwan"
+date: "`r Sys.Date()`"
+output: 
+    html_document:
+        df_print: paged
+        code_folding: show
+        highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(gt)
+```
+
+```{r download-data}
+high_url <- "https://www.federalreserve.gov/supervisionreg/files/cards-high-risk-2022.csv"
+typical_url <- "https://www.federalreserve.gov/supervisionreg/files/cards-typical-risk-2022.csv"
+low_url <- "https://www.federalreserve.gov/supervisionreg/files/cards-low-risk-2022.csv"
+
+dl_data <- function(url) {
+    save_file <- here::here(basename(url))
+    if(!file.exists(save_file)) {
+        download.file(url, save_file)
+    } else {
+        message(paste0(basename(url), " already exists."))
+    }
+}
+
+c(high_url, typical_url, low_url) %>%
+    walk(dl_data)
+
+```
+
+```{r import-data}
+high_data <- vroom::vroom(here::here("cards-high-risk-2022.csv"))
+
+high_data %>%
+    mutate(creditcardtype_fct = factor(creditcardtype, labels = c("General purpose", "Private label")),
+           currentcreditlimit_fct = cut(x = currentcreditlimit,
+                                        breaks = c(-Inf, 1500, 7500, Inf),
+                                        labels = c("$1,500 and less", "$1,501-$7,500", "Over $7,500")),
+           dayspastdue_fct = cut(x = dayspastdue,
+                                 breaks = c(-Inf, 29, Inf),
+                                 labels = c("Current", "30+ Days past due")),
+           producttype_fct = factor(producttype, labels = c("Co-brand", "Other")),
+           activeflag_fct = factor(activeflag, labels = c("Open and active", "Other")),
+           accountoriginationyear_fct = case_when(accountoriginationyear <= 2016 ~ "2016 and prior",
+                                                  T ~ as.character(accountoriginationyear)) %>%
+               as_factor(),
+           monthendclosedrevokedflag_fct = factor(monthendclosedrevokedflag, labels = c("Open and active", "Other")),
+           cycleendingbalance_fct = cut(cycleendingbalance,
+                                        breaks = c(-Inf, 1000, 2000, 3000, 5000, 10000, Inf),
+                                        labels = c("Under $1,000", 
+                                                   "$1,000-$1,999",
+                                                   "$2,000-$2,999",
+                                                   "$3,000-$4,999",
+                                                   "$5,000-$9,999",
+                                                   "$10,000 and over"),
+                                        right = FALSE),
+           borrowerincome_fct = cut(borrowerincome,
+                                    breaks = c(-Inf, 50000, 10000, Inf),
+                                    labels = c("$50,000 and less", "$50,001-$100,000", "Over $100,000")),
+           originalcreditlimit_fct = cut(originalcreditlimit,
+                                        breaks = c(-Inf, 1500, 7500, Inf),
+                                        labels = c("$1,500 and less", "$1,501-$7,500", "Over $7,500")),
+           cycleendingretailapr_fct = cut(cycleendingretailapr,
+                                          breaks = c(-Inf, 12, 15, 20, 24, Inf),
+                                          labels = c("Under 12%",
+                                                     "12%-14.99%",
+                                                     "15%-19.99%",
+                                                     "20%-23.99%",
+                                                     "24% and over"),
+                                          right = FALSE)
+           ) 
+
+
+
+```
+
