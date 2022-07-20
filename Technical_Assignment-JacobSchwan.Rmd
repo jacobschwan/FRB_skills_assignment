@@ -38,7 +38,7 @@ c(high_url, typical_url, low_url) %>%
 ```{r import-data}
 high_data <- vroom::vroom(here::here("cards-high-risk-2022.csv"))
 
-high_data %>%
+high_data_fct <- high_data %>%
     mutate(creditcardtype_fct = factor(creditcardtype, labels = c("General purpose", "Private label")),
            currentcreditlimit_fct = cut(x = currentcreditlimit,
                                         breaks = c(-Inf, 1500, 7500, Inf),
@@ -79,5 +79,15 @@ high_data %>%
 
 
 
+```
+
+```{r}
+high_data_fct %>%
+    select(cycleendingbalance, ends_with("fct")) %>%
+    pivot_longer(-cycleendingbalance, names_to = "group", values_to = "variables") %>%
+    group_by(group, variables) %>%
+    summarise(balance = sum(cycleendingbalance), .groups = "drop_last") %>%
+    mutate(pct_balance = balance/sum(balance)) %>%
+    arrange(group, variables)
 ```
 
