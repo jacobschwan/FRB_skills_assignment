@@ -88,33 +88,20 @@ card_summaries <- card_data_fct %>%
     pivot_longer(!c(cycleendingbalance, risk_level), names_to = "group", values_to = "variables") %>%
     group_by(risk_level, group, variables) %>%
     summarise(balance = sum(cycleendingbalance), .groups = "drop_last") %>%
-    mutate(pct_balance = balance/sum(balance),
-           # group = as_factor(group) %>%
-           #     fct_recode("Credit card type" = "creditcardtype_fct",
-           #                "Current credit limit" = "currentcreditlimit_fct",
-           #                "Days past due" = "dayspastdue_fct",
-           #                "Product type" = "producttype_fct",
-           #                "Month-end account status" = "activeflag_fct",
-           #                "Account origination year" = "accountoriginationyear_fct",
-           #                "Month-end close status" = "monthendclosedrevokedflag_fct",
-           #                "Income at origination" = "borrowerincome_fct",
-           #                "Original credit limit" = "originalcreditlimit_fct",
-           #                "Interest rate at cycle end" = "cycleendingretailapr_fct")
-           ) %>%
+    mutate(pct_balance = balance/sum(balance)) %>%
     ungroup() %>%
     select(-balance) %>%
     pivot_wider(names_from = risk_level,
                 values_from = pct_balance,
                 values_fill = 0) 
-
-card_summaries
 ```
 
-```{r}
+```{r summary-table}
 card_summaries %>%
     gt(rowname_col = "variables") %>%
     tab_header(title = "Table 37. Summary statistics of selected variables in the portfolios of hypothetical credit card accounts",
                subtitle = "Percent as a share of cycle ending balance, except as noted") %>%
+    opt_align_table_header(align = "left") %>%
     tab_stubhead("Variables") %>%
     tab_row_group(group = "Interest rate at cycle end",
                   row = grep("cycleendingretailapr", group)) %>%
@@ -143,9 +130,38 @@ card_summaries %>%
                `typical-risk` = "Typical",
                `low-risk` = "Lower-risk") %>%
     cols_move(c("typical-risk", "high-risk"),after = "low-risk") %>%
+    cols_width(contains("risk") ~ pct(20)) %>%
     fmt_number(columns = contains("risk"),
                decimals = 2,
-               scale_by = 100)
+               scale_by = 100) %>%
+    opt_table_lines(extent = "none") %>%
+    opt_table_outline(color = "#00538D") %>%
+    tab_style(style = list(cell_fill(color = "#00538D"),
+                           cell_text(color = "white",
+                                     weight = "bold")),
+              locations = list(cells_title("title"),
+                               cells_title("subtitle"))) %>%
+    tab_style(style = list(cell_fill(color = "#E6E6E8"),
+                           cell_text(color = "black", 
+                                     align = "center"),
+                           cell_borders(sides = "all",
+                                        color = "#00538D",
+                                        weight = px(1))),
+              locations = list(cells_stubhead(), 
+                               cells_column_labels(columns = everything()))) %>%
+    tab_style(style = list(cell_borders(sides = c("top", "bottom"),
+                                        color = "#00538D",
+                                        weight = px(1))),
+              locations = list(cells_stub(),
+                               cells_body(),
+                               cells_row_groups(),
+                               cells_title())) %>%
+    tab_style(style = list(cell_text()),
+              locations = cells_body()) %>%
+    tab_style(style = list(cell_text(color = "#00538D",
+                                      weight = "bold")),
+              locations = cells_row_groups())
+    
 
 ```
 
