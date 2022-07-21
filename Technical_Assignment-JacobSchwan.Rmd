@@ -28,17 +28,21 @@ dl_data <- function(url) {
     } else {
         message(paste0(basename(url), " already exists."))
     }
+    save_file
 }
 
-c(high_url, typical_url, low_url) %>%
-    walk(dl_data)
+data_files <- c(high_url, typical_url, low_url) %>%
+    map_chr(dl_data) %>%
+    set_names(basename(.) %>%
+                  str_extract("\\w+-risk"))
 
 ```
 
 ```{r import-data}
-high_data <- vroom::vroom(here::here("cards-high-risk-2022.csv"))
+card_data <- data_files %>%
+    map_dfr(vroom::vroom, .id = "risk_level")
 
-high_data_fct <- high_data %>%
+card_data_fct <- card_data %>%
     mutate(creditcardtype_fct = factor(creditcardtype, labels = c("General purpose", "Private label")),
            currentcreditlimit_fct = cut(x = currentcreditlimit,
                                         breaks = c(-Inf, 1500, 7500, Inf),
@@ -76,18 +80,72 @@ high_data_fct <- high_data %>%
                                                      "24% and over"),
                                           right = FALSE)
            ) 
+```
 
+```{r summary-pivot}
+card_summaries <- card_data_fct %>%
+    select(cycleendingbalance, risk_level, ends_with("fct")) %>%
+    pivot_longer(!c(cycleendingbalance, risk_level), names_to = "group", values_to = "variables") %>%
+    group_by(risk_level, group, variables) %>%
+    summarise(balance = sum(cycleendingbalance), .groups = "drop_last") %>%
+    mutate(pct_balance = balance/sum(balance),
+           # group = as_factor(group) %>%
+           #     fct_recode("Credit card type" = "creditcardtype_fct",
+           #                "Current credit limit" = "currentcreditlimit_fct",
+           #                "Days past due" = "dayspastdue_fct",
+           #                "Product type" = "producttype_fct",
+           #                "Month-end account status" = "activeflag_fct",
+           #                "Account origination year" = "accountoriginationyear_fct",
+           #                "Month-end close status" = "monthendclosedrevokedflag_fct",
+           #                "Income at origination" = "borrowerincome_fct",
+           #                "Original credit limit" = "originalcreditlimit_fct",
+           #                "Interest rate at cycle end" = "cycleendingretailapr_fct")
+           ) %>%
+    ungroup() %>%
+    select(-balance) %>%
+    pivot_wider(names_from = risk_level,
+                values_from = pct_balance,
+                values_fill = 0) 
 
-
+card_summaries
 ```
 
 ```{r}
-high_data_fct %>%
-    select(cycleendingbalance, ends_with("fct")) %>%
-    pivot_longer(-cycleendingbalance, names_to = "group", values_to = "variables") %>%
-    group_by(group, variables) %>%
-    summarise(balance = sum(cycleendingbalance), .groups = "drop_last") %>%
-    mutate(pct_balance = balance/sum(balance)) %>%
-    arrange(group, variables)
+card_summaries %>%
+    gt(rowname_col = "variables") %>%
+    tab_header(title = "Table 37. Summary statistics of selected variables in the portfolios of hypothetical credit card accounts",
+               subtitle = "Percent as a share of cycle ending balance, except as noted") %>%
+    tab_stubhead("Variables") %>%
+    tab_row_group(group = "Interest rate at cycle end",
+                  row = grep("cycleendingretailapr", group)) %>%
+    tab_row_group(group = "Original credit limit",
+                  row = grep("originalcreditlimit", group)) %>%
+    tab_row_group(group = "Income at origination",
+                  row = grep("borrowerincome", group)) %>%
+    tab_row_group(group = "Cycle ending balance",
+                  row = grep("cycleendingbalance", group)) %>%
+    tab_row_group(group = "Month-end close status",
+                  row = grep("monthend", group)) %>%
+    tab_row_group(group = "Account origination year",
+                  row = grep("originationyear", group)) %>%
+    tab_row_group(group = "Month-end account status",
+                  row = grep("activeflag", group)) %>%
+    tab_row_group(group = "Product type",
+                  row = grep("producttype", group)) %>%
+    tab_row_group(group = "Days past due",
+                  row = grep("dayspastdue", group)) %>%
+    tab_row_group(group = "Current credit limit",
+                  row = grep("currentcreditlimit", group)) %>%
+    tab_row_group(group = "Credit card type",
+                  row = grep("cardtype", group)) %>%
+    cols_hide(c("group")) %>%
+    cols_label(`high-risk` = "Higher-risk",
+               `typical-risk` = "Typical",
+               `low-risk` = "Lower-risk") %>%
+    cols_move(c("typical-risk", "high-risk"),after = "low-risk") %>%
+    fmt_number(columns = contains("risk"),
+               decimals = 2,
+               scale_by = 100)
+
 ```
 
