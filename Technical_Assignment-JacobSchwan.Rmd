@@ -71,7 +71,7 @@ card_data_fct <- card_data %>%
                                                    "$10,000 and over"),
                                         right = FALSE),
            borrowerincome_fct = cut(borrowerincome,
-                                    breaks = c(-Inf, 50000, 10000, Inf),
+                                    breaks = c(-Inf, 50000, 100000, Inf),
                                     labels = c("$50,000 and less", 
                                                "$50,001-$100,000", 
                                                "Over $100,000")),
@@ -115,28 +115,28 @@ card_summaries %>%
                subtitle = "Percent as a share of cycle ending balance, except as noted") %>%
     opt_align_table_header(align = "left") %>%
     tab_stubhead("Variables") %>%
-    tab_row_group(group = "Interest rate at cycle end",
+    tab_row_group(label = "Interest rate at cycle end",
                   row = grep("cycleendingretailapr", group)
                   ) %>%
-    tab_row_group(group = "Original credit limit",
+    tab_row_group(label = "Original credit limit",
                   row = grep("originalcreditlimit", group)) %>%
-    tab_row_group(group = "Income at origination",
+    tab_row_group(label = "Income at origination",
                   row = grep("borrowerincome", group)) %>%
-    tab_row_group(group = "Cycle ending balance",
+    tab_row_group(label = "Cycle ending balance",
                   row = grep("cycleendingbalance", group)) %>%
-    tab_row_group(group = "Month-end close status",
+    tab_row_group(label = "Month-end close status",
                   row = grep("monthend", group)) %>%
-    tab_row_group(group = "Account origination year",
+    tab_row_group(label = "Account origination year",
                   row = grep("originationyear", group)) %>%
-    tab_row_group(group = "Month-end account status",
+    tab_row_group(label = "Month-end account status",
                   row = grep("activeflag", group)) %>%
-    tab_row_group(group = "Product type",
+    tab_row_group(label = "Product type",
                   row = grep("producttype", group)) %>%
-    tab_row_group(group = "Days past due",
+    tab_row_group(label = "Days past due",
                   row = grep("dayspastdue", group)) %>%
-    tab_row_group(group = "Current credit limit",
+    tab_row_group(label = "Current credit limit",
                   row = grep("currentcreditlimit", group)) %>%
-    tab_row_group(group = "Credit card type",
+    tab_row_group(label = "Credit card type",
                   row = grep("creditcardtype", group)
                   ) %>%
     cols_hide(c("group")) %>%
